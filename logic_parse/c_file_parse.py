@@ -1,6 +1,6 @@
 import string
 import os
-from logic_parse.base_fielf import IICDataGroupList
+from logic_parse.base_format import IICDataGroupList
 
 
 BASE_TARGET_PATH = os.path.join(os.environ.get('USERPROFILE'), 'Desktop')
@@ -21,7 +21,8 @@ ${content}\n
 
 
 _H_FILE_TEMPLATE = \
-'''#ifndef TP_INIT_H
+'''
+#ifndef TP_INIT_H
 #define TP_INIT_H\r\n
 #include "TouchPoint.h"\r\n
 void Tp_Init_For_La(void);\r\n
@@ -101,5 +102,6 @@ class TPCFileFactory:
         with open(h_path, 'w') as f:
             f.write(_H_FILE_TEMPLATE)
         print('generated h file end...')
+
 
 

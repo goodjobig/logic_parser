@@ -1,3 +1,6 @@
+import re
+
+
 class IICDataGroup:
     __slots__ = ('_index', 'data', '_data_list', '_inited', '_wr_mode', '_addr')
 
@@ -91,8 +94,78 @@ class IICDataGroupList:
                 print("index:%s addr:%s wr: %s data: %s" % (index, item.addr, item.wr_mode, item.get_data()))
 
 
-class SPIDataGroup:
-    pass
+class MIPIDataGroup:
+    __slots__ = ('_index', 'data', '_data_list', '_inited')
+
+    @staticmethod
+    def is_hex(value):
+        assert isinstance(value, str) and value.startswith('0x') and int(value, 16) < 256, " The value must be of type char in c "
+
+    def __init__(self):
+        self._index = 0
+        self._data_list = []
+        self._inited = False
+
+    def __iter__(self):
+        return iter(self._data_list)
+
+    def __len__(self):
+        return len(self._data_list)
+
+    def __str__(self):
+        return "<obj MIPIDataGroup instance> "
+
+    def get_data(self):
+        return self._data_list
+
+    def append(self, *values):
+        pattern = re.compile(r'[0-9a-fA-F]{2}')
+        for i in values:
+            i = re.search(pattern, i)
+            if i:
+                i = i.group(0)
+            else:
+                break
+            i = '0x' + i
+            self._data_list.append(i)
+            print(self._data_list)
+
+    def is_empty(self):
+        if len(self._data_list):
+            return True
+        else:
+            return False
+
+
+class MIPIDataGroupList:
+    def __init__(self):
+        self._index = 0
+        self._group = []
+
+    def append(self, value):
+        assert isinstance(value, MIPIDataGroup), "append 的对象必须是 DataGroup 类型"
+        self._group.append(value)
+
+    def __iter__(self):
+        return iter(self._group)
+
+    def __len__(self):
+        return len(self._group)
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            self._group = self._group[item.start:item.stop:item.step]
+            return self._group[item.start:item.stop:item.step]
+        else:
+            if item <= len(self._group):
+                return self._group[item]
+            else:
+                raise KeyError("未找到你所要的值")
+
+    def show(self):
+        if len(self._group):
+            for index, item in enumerate(self._group):
+                print("index :%s item :%s" % (index, item.get_data()))
 
 
 if __name__ == '__main__':

@@ -3,14 +3,29 @@ import csv
 import os.path
 from abc import abstractmethod
 from logic_parse.c_file_parse import TPCFileFactory
-from logic_parse.base_fielf import IICDataGroup, IICDataGroupList
+from logic_parse.base_format import IICDataGroup, IICDataGroupList, MIPIDataGroup , MIPIDataGroupList
 from utils.window_utils import open_select_box
 
 
 class TPCFileMixin:
     def to_c_file(self):
+        assert isinstance(self, BaseLogicParse)
         cff = TPCFileFactory(self.py_list)
         cff.parse()
+
+
+class InitStringMixin:
+    def to_init_string(self):
+        assert isinstance(self, BaseLogicParse)
+        s = ''
+        for i in self.py_list:
+            sd_pack = 'SSD2828_WritePackageSize(%s);\n' % len(i)
+            s += sd_pack
+            for item in i:
+                sd = 'SPI_WriteData(%s);\n' % item
+                s += sd
+            s += '\n'
+        return s
 
 
 class BaseLogicParse:
@@ -19,7 +34,7 @@ class BaseLogicParse:
         self.csv_reader = self.parse_csv(self.csv_path)
         self.csv_list = self.select_col(self.csv_reader)
         self.py_list = self.res_2python_list(self.csv_list)
-        assert isinstance(self.py_list, IICDataGroupList), "py_List 必须是 DataGroupList 类型"
+        assert isinstance(self.py_list, IICDataGroupList) or isinstance(self.py_list, MIPIDataGroupList), "py_List 必须是 DataGroupList 或 MIPIDataGroupList 类型"
         self.display()
 
     @staticmethod
@@ -180,6 +195,36 @@ class IICSaleLogicParse(BaseLogicParse, TPCFileMixin):
                 dg.wr_mode = 0 if w_search else 1
             dg.append(item[2])
         return dgl
+
+
+class MIPILogicParse(BaseLogicParse, InitStringMixin):
+
+    def select_col(self, csv_reader):
+        result = []
+        for row in csv_reader:
+            r_row = row[4:5] + row[7:15]
+            result.append(r_row)
+        return result[1:]
+
+    def res_2python_list(self, csv_list):
+        dgl = MIPIDataGroupList()
+        for row in csv_list:
+            if row[0] and len(row[0]) > 10:
+                try:
+                    dgl.append(data_group)
+                except UnboundLocalError as e:
+                    pass
+                data_group = MIPIDataGroup()
+            elif not row[1]:
+                continue
+            row = row[1:]
+            try:
+                data_group.append(*row)
+            except UnboundLocalError:
+                pass
+        dgl.append(data_group)
+        return dgl
+
 
 
 if __name__ == '__main__':
