@@ -33,6 +33,9 @@ C_FILE_DATA_WRITE = '  I2C_Write({a},dataBuff,{length},Delay);\n'
 C_FILE_DATA_READ = '  I2C_Read({a},dataBuff,{length},Delay);\n'
 C_FILE_DATA_BUFF = '  dataBuff[${index}] = ${hex_value};\n'
 
+Read_Func = 'I2C_Read'
+Write_Func = 'I2C_Write'
+
 
 def file_select_loop(base_path, full_path):
     while 1:
@@ -72,9 +75,25 @@ class TPCFileFactory:
         global C_FILE_DATA_BUFF
         self.data_source = py_list
         self.template = string.Template(_C_FILE_TEMPLATE)
+        # for data in self.data_source:
+        #     # addr = data[0]
+        #     # wr_mode = data[1]
+        #     if data.wr_mode == 0:
+        #         for index, d in enumerate(data):
+        #             data_buffer = string.Template(C_FILE_DATA_BUFF)
+        #             temp = data_buffer.substitute({'index': index, 'hex_value': d})
+        #             _C_FILE_DATA_CONTENT += temp
+        #         _C_FILE_DATA_CONTENT += C_FILE_DATA_WRITE.format(a=data.addr, length=len(data))
+        #     else:
+        #         _C_FILE_DATA_CONTENT += C_FILE_DATA_READ.format(a=data.addr, length=len(data))
+        self.res = None
+
+    def clear_data(self):
+        global _C_FILE_DATA_CONTENT
+        global C_FILE_DATA_WRITE
+        global C_FILE_DATA_READ
+        global C_FILE_DATA_BUFF
         for data in self.data_source:
-            # addr = data[0]
-            # wr_mode = data[1]
             if data.wr_mode == 0:
                 for index, d in enumerate(data):
                     data_buffer = string.Template(C_FILE_DATA_BUFF)
@@ -83,9 +102,11 @@ class TPCFileFactory:
                 _C_FILE_DATA_CONTENT += C_FILE_DATA_WRITE.format(a=data.addr, length=len(data))
             else:
                 _C_FILE_DATA_CONTENT += C_FILE_DATA_READ.format(a=data.addr, length=len(data))
-        self.res = self.template.safe_substitute(content=_C_FILE_DATA_CONTENT)
+        return _C_FILE_DATA_CONTENT
 
     def parse(self):
+        s = self.clear_data()
+        self.res = self.template.safe_substitute(content=s)
         print('parse to c file start...')
         if not os.path.isdir(TARGET_PATH):
             os.mkdir(TARGET_PATH)

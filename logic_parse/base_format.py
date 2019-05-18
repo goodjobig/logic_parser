@@ -78,6 +78,12 @@ class IICDataGroupList:
     def __len__(self):
         return len(self._group)
 
+    def __str__(self):
+        s = ''
+        for data in self._group:
+            s += str(data.get_data()) + '\n'
+        return str(s)
+
     def __getitem__(self, item):
         if isinstance(item, slice):
             self._group = self._group[item.start:item.stop:item.step]
@@ -87,6 +93,9 @@ class IICDataGroupList:
                 return self._group[item]
             else:
                 raise KeyError("未找到你所要的值")
+
+    def remove(self, index):
+        self._group.remove(index)
 
     def show(self):
         if len(self._group):
@@ -128,7 +137,6 @@ class MIPIDataGroup:
                 break
             i = '0x' + i
             self._data_list.append(i)
-            print(self._data_list)
 
     def is_empty(self):
         if len(self._data_list):

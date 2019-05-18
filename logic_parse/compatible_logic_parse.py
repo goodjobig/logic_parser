@@ -3,7 +3,7 @@ import csv
 import os.path
 from abc import abstractmethod
 from logic_parse.c_file_parse import TPCFileFactory
-from logic_parse.base_format import IICDataGroup, IICDataGroupList, MIPIDataGroup , MIPIDataGroupList
+from logic_parse.base_format import IICDataGroup, IICDataGroupList, MIPIDataGroup, MIPIDataGroupList
 from utils.window_utils import open_select_box
 
 
@@ -18,13 +18,18 @@ class InitStringMixin:
     def to_init_string(self):
         assert isinstance(self, BaseLogicParse)
         s = ''
-        for i in self.py_list:
-            sd_pack = 'SSD2828_WritePackageSize(%s);\n' % len(i)
-            s += sd_pack
-            for item in i:
-                sd = 'SPI_WriteData(%s);\n' % item
-                s += sd
-            s += '\n'
+        if isinstance(self, MIPILogicParse):
+            for i in self.py_list:
+                sd_pack = 'SSD2828_WritePackageSize(%s);\n' % len(i)
+                s += sd_pack
+                for item in i:
+                    sd = 'SPI_WriteData(%s);\n' % item
+                    s += sd
+                s += '\n'
+        elif isinstance(self, IICLogicParse) or\
+                isinstance(self, IICLaLogicParse) or\
+                isinstance(self, IICSaleLogicParse):
+            s += TPCFileFactory(self.py_list).clear_data()
         return s
 
 
@@ -35,7 +40,7 @@ class BaseLogicParse:
         self.csv_list = self.select_col(self.csv_reader)
         self.py_list = self.res_2python_list(self.csv_list)
         assert isinstance(self.py_list, IICDataGroupList) or isinstance(self.py_list, MIPIDataGroupList), "py_List 必须是 DataGroupList 或 MIPIDataGroupList 类型"
-        self.display()
+        # self.display()
 
     @staticmethod
     def parse_csv(csv_path):
@@ -86,11 +91,11 @@ class BaseLogicParse:
             pass
 
 
-class IICLogicParse(BaseLogicParse, TPCFileMixin):
+class IICLogicParse(BaseLogicParse, TPCFileMixin, InitStringMixin):
     def select_col(self, csv_reader):
         result = []
         for col in csv_reader:
-            result.append(col)
+            result.append(col[1:])
         return result
 
     def res_2python_list(self, csv_list):
@@ -100,13 +105,22 @@ class IICLogicParse(BaseLogicParse, TPCFileMixin):
         list_arg = csv_list[1:]
         p_for_block = re.compile(r'setup\s(?P<wr_mode>(write)|(read))\sto\s\[(?P<addr>0x\w{2})\]')
         for item in list_arg:
-            effect_value = item[-1]
+            try:
+                effect_value = item[-1]
+            except IndexError:
+                break
             start = re.search(p_for_block, effect_value.lower())
             if start:
                 dg = IICDataGroup()
                 dgl.append(dg)
                 wr_mod = 0 if start.group('wr_mode') == 'write' else 1
                 addr = start.group('addr')
+                # k = IICDataGroup.is_hex(addr)
+                # print(k)
+                # if not k:
+                #     dgl.remove(dg)
+                #     del dg
+                #     return dgl
                 dg.addr = addr
                 dg.wr_mode = wr_mod
             else:
@@ -119,7 +133,7 @@ class IICLogicParse(BaseLogicParse, TPCFileMixin):
         return dgl
 
 
-class IICLaLogicParse(BaseLogicParse, TPCFileMixin):
+class IICLaLogicParse(BaseLogicParse, TPCFileMixin, InitStringMixin):
     def select_col(self, csv_reader):
         result = []
         for col in csv_reader:
@@ -168,7 +182,7 @@ class IICLaLogicParse(BaseLogicParse, TPCFileMixin):
         return dgl
 
 
-class IICSaleLogicParse(BaseLogicParse, TPCFileMixin):
+class IICSaleLogicParse(BaseLogicParse, TPCFileMixin, InitStringMixin):
     def select_col(self, csv_reader):
         result = []
         for col in csv_reader:
@@ -191,7 +205,6 @@ class IICSaleLogicParse(BaseLogicParse, TPCFileMixin):
                 pre_group = int(item[0])
                 dg.addr = item[1]
                 w_search = re.search(wr_pattern, item[3].lower())
-                print(w_search)
                 dg.wr_mode = 0 if w_search else 1
             dg.append(item[2])
         return dgl
