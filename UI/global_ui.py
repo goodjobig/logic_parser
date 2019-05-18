@@ -159,7 +159,6 @@ class ContainerUI:
 
     def parser(self):
         if self.filename.get():
-            print('start parse !!!')
             logic_sel = self.select_logic.get()
             logic_sel = int(logic_sel)
             logic_obj = ''
@@ -169,7 +168,7 @@ class ContainerUI:
             elif logic_sel == 1:
                 logic_obj = 'IICLogicParse'
             elif logic_sel == 2:
-                logic_obj = 'IICLaLogicParse'
+                logic_obj = 'IICSaleLogicParse'
             elif logic_sel == 3:
                 logic_obj = 'MIPILogicParse'
             else:
@@ -178,16 +177,18 @@ class ContainerUI:
                 logic_parse = getattr(compatible_logic_parse, logic_obj)(self.filename.get())
                 res = logic_parse.to_init_string()
                 if not len(res):
-                    tkinter.messagebox.showwarning(title='解析错误', message='请确认csv表内容,复合左图格式。')
-                del logic_parse
+                    tkinter.messagebox.showwarning(title='解析错误', message='请确认csv表内容,符合左图格式。')
                 self.text.insert(tkinter.INSERT, res)
             except AssertionError:
-                tkinter.messagebox.showwarning(title='解析错误', message='请确认csv表内容,复合左图格式。')
-            self.parse_btn.configure(state='normal')
-
+                tkinter.messagebox.showwarning(title='解析错误', message='请确认csv表内容,符合左图格式。')
+            except IndexError:
+                tkinter.messagebox.showwarning(title='解析错误', message='请确认csv表内容,符合左图格式。')
+            except UnboundLocalError:
+                tkinter.messagebox.showwarning(title='解析错误', message='请确认csv表内容,符合左图格式。')
         else:
             msg_box = tkinter.Message(self.frame)
             msg_box.place(x=WIDTH/2, y=HEIGHT/2)
+        self.parse_btn.configure(state='normal')
 
     def res_clear(self):
         self.text.delete(1.0, tkinter.END)
